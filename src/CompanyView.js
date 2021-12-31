@@ -9,7 +9,7 @@ const CompanyView = () => {
     return (
         <div>
             <CompanyForm update={update} currentCompany={currentCompany} setCurrentCompany={setCurrentCompany} />
-            <CompanyList isUpdated={isUpdated} update={update} setCurrentCompany={setCurrentCompany} />
+            <CompanyList setCurrentCompany={setCurrentCompany} />
         </div>
     )
 }

@@ -1,7 +1,13 @@
 import React, {useEffect, useState} from 'react';
 import {API, Storage} from "aws-amplify";
-import {createCompany as createCompanyMutation, updateCompany as updateCompanyMutation} from "./graphql/mutations";
+import {
+    createCompany as createCompanyMutation,
+    deleteCompany as deleteCompanyMutation,
+    updateCompany as updateCompanyMutation
+} from "./graphql/mutations";
 import {listStatuses} from "./graphql/custom_queries";
+import StatusDropdown from "./StatusDropdown";
+import {useMutation, useQueryClient} from "react-query";
 
 const initialFormState = {
     name: '',
@@ -14,37 +20,16 @@ const initialFormState = {
 
 
 const CompanyForm = (props) => {
-    const {update, currentCompany, setCurrentCompany} = props;
-    const [statuses, setStatuses] = useState([]);
+    const {currentCompany, setCurrentCompany} = props;
     const [formData, setFormData] = useState(initialFormState);
 
-    useEffect(() => {
-        fetchStatuses();
-    }, []);
-
-    useEffect(() => {
-        if (currentCompany)
-            setFormData(currentCompany);
-        else
-            setFormData(initialFormState);
-    }, [currentCompany])
-
-    async function fetchStatuses() {
-        const apiData = await API.graphql({ query: listStatuses });
-        const statuses = apiData.data.__type.enumValues.map(status => status.name);
-        setStatuses(statuses);
-    }
-
-    async function mutateCompany() {
-        await API.graphql({
-            query: currentCompany ? updateCompanyMutation : createCompanyMutation, variables: { input: formData }});
-        if (formData.image) {
-            formData.image = await Storage.get(formData.image);
-        }
-        setCurrentCompany(null);
-        setFormData(initialFormState);
-        update(true);
-    }
+    const queryClient = useQueryClient();
+    const mutation = useMutation(formData => {
+        console.log(formData);
+        return API.graphql({
+                query: currentCompany ? updateCompanyMutation : createCompanyMutation, variables: { input: formData }})
+        },
+        {onSuccess: () => queryClient.invalidateQueries("companies")});
 
     async function addImage(e) {
         if (!e.target.files[0]) return;
@@ -77,17 +62,7 @@ const CompanyForm = (props) => {
                         value={formData.salary}
                         onChange={e => setFormData({ ...formData, salary: parseInt(e.target.value)})}
                     /></div>
-                    <select
-                        style={{width: '36%', margin: '1vh 0'}}
-                        name="status"
-                        id="status"
-                        value={formData.status}
-                        onChange={e => setFormData({ ...formData, status: e.target.value })}>
-                        <option selected disabled value={""}>Status</option>
-                        {statuses.map(status =>
-                            <option key={status} value={status}>{status.split("_").join(" ")}</option>
-                        )}
-                    </select>
+                    <StatusDropdown formData={formData} updateData={setFormData} />
                     <input style={{width: '35%', margin: '1vh 0'}}
                            type="datetime-local"
                            id="interview-time"
@@ -104,7 +79,7 @@ const CompanyForm = (props) => {
             <div style={{display: 'flex', flexFlow: 'column', margin: '1vw'}}>
                 <button style={{width: '5vw'}}
                     disabled={!(formData.name && formData.status)}
-                    onClick={mutateCompany}
+                    onClick={() => mutation.mutate(formData)}
                 >{currentCompany ? "Update" : "Create"}</button>
                 {currentCompany && <button style={{width: '5vw', marginTop: '1vh'}} onClick={() => setCurrentCompany(null)}>Cancel</button>}
             </div>

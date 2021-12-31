@@ -41,7 +41,7 @@ const Company = (props) => {
                     delete updateData.updatedAt;
                     setCurrentCompany(updateData);
                 }}>Edit</button>
-                <button style={{width: '5vw', height: '3vh', marginTop: '1vh'}} onClick={() => deleteCompany(data.id)}>Delete</button>
+                <button style={{width: '5vw', height: '3vh', marginTop: '1vh'}} onClick={deleteCompany}>Delete</button>
             </div>
         </div>
     )
